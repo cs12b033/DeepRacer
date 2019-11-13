@@ -37,4 +37,6 @@ def reward_function(params):
         # High reward if the car stays on track and goes fast
         reward += speed/SPEED_MAX
 
+
+
     return float(reward)
