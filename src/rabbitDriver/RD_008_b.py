@@ -3,9 +3,10 @@
     @author: Ajay Pratap Singh
     @Link: https://github.com/cs12b033/DeepRacer
     @License: GNU Lesser General Public License v3.0
-    Model name : reward_RD_005 [Family: RabbitDriver, Gene: Punisher]
-    Model description : Minimalistic functions to give rewards for being on track and punishing heavily if off-track
+    Model name : reward_RD_008 [Family: RabbitDriver, Gene: DedicatedFollower]
+    Model description : Follows center line
 """
+
 
 def check_reward_bounds(reward):
     """
@@ -15,18 +16,6 @@ def check_reward_bounds(reward):
     """
     return max(min(reward, 1e5), -1e5)
 
-def calculate_reward(progress_reward, centering_reward, speed_reward, waypoints_reward, heading_reward, steering_reward, left_reward, penalty):
-    STRATEGY_REWARD_COEFFICIENT = 1
-    STRATEGY_REWARD_POWER = 1
-    rewards = \
-            pow(progress_reward, STRATEGY_REWARD_POWER) * \
-            pow(centering_reward, 2) * \
-            pow(speed_reward, 1.5) * \
-            pow(waypoints_reward, 1.1) * \
-            pow(heading_reward, STRATEGY_REWARD_POWER) * \
-            pow(steering_reward, STRATEGY_REWARD_POWER) * \
-            pow(left_reward, STRATEGY_REWARD_POWER)
-    return STRATEGY_REWARD_COEFFICIENT  * rewards + penalty
 
 def reward_function(params):
     """
@@ -48,42 +37,57 @@ def reward_function(params):
         @:returns
             reward : float [-1e5, 1e5]
     """
-    # TODO:
-    # * Make proper logs
 
     try:
-
-        # Import all libraries related to reward function
-        from math import pow, atan2, degrees
-
         # initialized variables from param
-        all_wheels_on_track = params['all_wheels_on_track']
-        x = params['x']
-        y = params['y']
-        distance_from_center = params['distance_from_center']
-        is_left_of_center = params['is_left_of_center']
-        heading = params['heading']
-        progress = params['progress']
-        steps = params['steps']
-        speed = params['speed']
-        steering_angle = params['steering_angle']
-        track_width = params['track_width']
-        waypoints = params['waypoints']
-        closest_waypoint = params['closest_waypoints']
+        try:
+            # all_wheels_on_track = params['all_wheels_on_track']
+            # x = params['x']
+            # y = params['y']
+            distance_from_center = params['distance_from_center']
+            # is_left_of_center = params['is_left_of_center']
+            # heading = params['heading']
+            # progress = params['progress']
+            # steps = params['steps']
+            speed = params['speed']
+            steering_angle = params['steering_angle']
+            track_width = params['track_width']
+            # waypoints = params['waypoints']
+            # closest_waypoint = params['closest_waypoints']
+            # is_reversed = params["is_reversed"]
+        except Exception as e:
+            # is_reversed = False
+            # print("Exception:", e.__str__())
+            pass
         print("\n\tParams:: {", end="")
         for key in params.keys():
             print(key, ":", params[key], end=", ")
         print("}")
 
-        # define variables
-        REWARD_MAX = 1e5
-        REWARD_MIN = -1e5
+        #
         SPEED_MAX = 5
+        SAFE_STEERING = 15
         STEERING_MAX = 30
-        reward = 1
 
-        # TODO: Write the logic for RD_005
+        # Calculate 3 markers that are at varying distances away from the center line
+        marker_1 = 0.1 * track_width
+        marker_2 = 0.25 * track_width
+        marker_3 = 0.5 * track_width
 
+        # Give higher reward if the car is closer to center line and vice versa
+        if distance_from_center <= marker_1:
+            reward = 5.0
+        elif distance_from_center <= marker_2:
+            reward = 0.5
+        elif distance_from_center <= marker_3:
+            reward = 0.1
+        else:
+            reward = 1e-3  # likely crashed
+
+        reward += pow(0.6 + speed/SPEED_MAX, 4)
+
+        if steering_angle > SAFE_STEERING:
+            reward *= (1 - 0.1 * steering_angle/STEERING_MAX)
 
         print("Reward::", reward)
         return float(check_reward_bounds(reward))
